@@ -6,7 +6,9 @@ module.exports = {
   entry: {
     index: './src/index.js'
   },
-  module: {},
+  module: {
+    rules: [ { test: /\.png$/, loader: 'url-loader?mimetype=image/png' } ]
+  },
   
   plugins: [
     new HtmlWebpackPlugin({

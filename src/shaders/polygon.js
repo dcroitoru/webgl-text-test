@@ -1,3 +1,5 @@
+import { createProgramInfo, createVaoInfoTypePolygon } from "../gl-util";
+
 const vertexShaderSource = `#version 300 es
 
 in vec2 a_position;
@@ -17,7 +19,17 @@ out vec4 outColor;
 
 void main() {
   outColor = u_color;
+  // outColor = vec4(1, 0,0, 1);
 }
 `
 
-export const polygonShader = [ vertexShaderSource, fragmentShaderSource ]
+const shader = [ vertexShaderSource, fragmentShaderSource ]
+const programName = 'polygon'
+const uniforms = [ 'u_matrix', 'u_color']
+const attributes = [ 'a_position']
+const defaultData = {
+  vertexElements: [ -1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1 ]
+}
+
+export const createPolygonProgramInfo = (gl) => createProgramInfo(gl, programName, shader, attributes, uniforms)
+export const createPolygonVaoInfo = (gl, programInfo, data = defaultData) => createVaoInfoTypePolygon(gl, programInfo, data, programName)
