@@ -1,5 +1,7 @@
 import flatten from '@flatten/array'
 import { vec2 } from 'gl-matrix'
+import { unitSizePx } from './context'
+import { measureText, createTextMeasurements } from './text-util'
 
 const mag = ([ x, y ]) => Math.sqrt(x * x + y * y)
 const unit = (v) => vec2.scale([], v, 1 / mag(v))
@@ -26,7 +28,7 @@ const createNormal = ([ x0, y0, x1, y1 ]) => {
 
 const createNormals = (segments) => segments.map(createNormal)
 
-const createSegments2D = (polyline) => {
+const createSegments = (polyline) => {
   let segments = []
   for (let i = 0; i < polyline.length - 2; i += 2) {
     segments.push([ polyline[i], polyline[i + 1], polyline[i + 2], polyline[i + 3] ])
@@ -34,7 +36,7 @@ const createSegments2D = (polyline) => {
   return segments
 }
 
-const createIntervals1D = (segments) => {
+const createIntervals = (segments) => {
   let lenSoFar = 0
   return segments.map((segment, index) => {
     let len = lenab(segment)
@@ -80,6 +82,7 @@ const findIntervalForStop = (intervals, stop) => {
   return int
 }
 
+const getIntervalMid = (interval) => getStopOnInterval(0.5, interval)
 const getStopOnInterval = (stop, [ left, right ]) => stop * (right - left) + left
 const getNormalizedStopOnInterval = (stop, [ left, right ]) => (stop - left) / (right - left)
 const getPointOnSegment = (stop, [ x0, y0, x1, y1 ]) => [ getStopOnInterval(stop, [ x0, x1 ]), getStopOnInterval(stop, [ y0, y1 ]) ]
@@ -102,8 +105,8 @@ const createCharAnchors1d = (totalLength, wordLength, fontSize, gapSize, charSto
 }
 
 export const createAnchors2D = (polyline, wordLength, fontSize, gapSize, charStops, measuredLength) => {
-  const segments = createSegments2D(polyline)
-  const intervals = createIntervals1D(segments)
+  const segments = createSegments(polyline)
+  const intervals = createIntervals(segments)
   const polylineLength = segments.map(lenab).reduce(sum)
   const charAnchors1d = createCharAnchors1d(polylineLength, wordLength, fontSize, gapSize, charStops, measuredLength)
   // const charAnchors1dFlat = flatten(charAnchors1d)
@@ -127,9 +130,9 @@ export const createAnchors2D = (polyline, wordLength, fontSize, gapSize, charSto
 }
 
 export const createNormals2D = (polyline, wordLength, fontSize, gapSize, charStops, measuredLength) => {
-  const segments = createSegments2D(polyline)
+  const segments = createSegments(polyline)
   const normals = createNormals(segments)
-  const intervals = createIntervals1D(segments)
+  const intervals = createIntervals(segments)
   const polylineLength = segments.map(lenab).reduce(sum)
   const charAnchors1d = createCharAnchors1d(polylineLength, wordLength, fontSize, gapSize, charStops)
   //const charAnchors1dFlat = flatten(charAnchors1d)
@@ -150,4 +153,34 @@ export const createNormals2D = (polyline, wordLength, fontSize, gapSize, charSto
   })
 
   return normals2d
+}
+
+/**
+ * Potential optimization - polylineLength (last element of polyIntervals)
+ */
+export const createAnchorsAndNormals = (polyline, text, fontSize, gapSize) => {
+  const polySegments = createSegments(polyline)
+  const polyIntervals = createIntervals(polySegments)
+  const polyNormals = createNormals(polySegments)
+  const polylineLength = polySegments.map(lenab).reduce(sum)
+  const { textLength, textIntervals } = createTextMeasurements(text, 1 / unitSizePx, 24)
+  const beginAt = (polylineLength - textLength) / 2
+  const charStops = textIntervals.map(getIntervalMid).map((stop) => stop + beginAt)
+  const anchors = []
+  const normals = []
+  charStops.forEach((stop) => {
+    const interval = findIntervalForStop(polyIntervals, stop)
+    if (!interval) return
+    const index = polyIntervals.indexOf(interval)
+    const segment = polySegments[index]
+    const normal = polyNormals[index]
+    const anchorNormalized = getNormalizedStopOnInterval(stop, interval)
+    const anchor = getPointOnSegment(anchorNormalized, segment)
+
+    anchors.push(anchor)
+    normals.push(normal)
+  })
+
+  
+  return { anchors, normals }
 }

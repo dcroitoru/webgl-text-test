@@ -1,16 +1,14 @@
-import { mat3, vec2 } from 'gl-matrix'
-import metrics from './assets/OpenSans-Regular.json'
+import { mat3 } from 'gl-matrix'
 import OpenSans from './assets/OpenSans-Regular.png'
 import ftexturepng from './assets/f-texture.png'
 import { createTextureProgramInfo, createTextureVaoInfo } from './shaders/texture'
 import { createSdfTextureProgramInfo, createSdfTextureVaoInfo } from './shaders/sdf-texture'
-import { createTextVaoData, createComplexPolygonVaoData, createSingleGlyphVaoData, createPolylineVaoData } from './vao-data'
+import { createComplexPolygonVaoData, createPolylineVaoData, createGlyphsVaoData } from './vao-data'
 import { createPolygonProgramInfo, createPolygonVaoInfo } from './shaders/polygon.js'
 import { texturePolygonFlat2d } from './geometry.js'
 import { CURVE } from './line-data.js'
 import { createPolylineVaoInfo, createPolylineProgramInfo } from './shaders/polyline.js'
-import { createAnchors2D, createNormals2D } from './math-util.js'
-import { createCharStops, measureText } from './text-util.js';
+import { createAnchorsAndNormals } from './math-util.js'
 
 export const unitSizePx = 512
 export const projection = (unitSizePx, width, height) => [ unitSizePx / width * 2, 0, 0, 0, -1 * unitSizePx / height * 2, 0, -1, 1, 1 ]
@@ -28,25 +26,18 @@ export const createContext = (gl) => {
 
   const polygonVaoInfo = createPolygonVaoInfo(gl, polygonProgramInfo, { vertexElements: texturePolygonFlat2d })
 
-  const text = 'A!B!C!' // 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUu'
-  const size = 0.1
-  const textVaoData = createTextVaoData(text, size)
-  const textVaoInfo = createSdfTextureVaoInfo(gl, sdfTextureProgramInfo, textVaoData)
+  // const text = 'A!B!C!' // 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUu'
+  // const size = 0.1
+  // const textVaoData = createTextVaoData(text, size)
+  // const textVaoInfo = createSdfTextureVaoInfo(gl, sdfTextureProgramInfo, textVaoData)
 
   const fontSize = 24 / unitSizePx
   const gapSize = 3 * fontSize
-  const word = 'This is a very long line test, blah blah blah!'
-  const wordLength = word.length
-  const charStops = createCharStops(word)
-  const measuredLength = measureText(word, 24) / unitSizePx
-  
-  const anchors = createAnchors2D(CURVE, wordLength, fontSize, gapSize, charStops, measuredLength)
-  const normals = createNormals2D(CURVE, wordLength, fontSize, gapSize, charStops, measuredLength)
+  const text = 'This is a very long line test, blah blah blah!'
 
-  // console.log(anchors)
-  // console.log(normals)
+  const { anchors, normals } = createAnchorsAndNormals(CURVE, text, fontSize, gapSize)
 
-  const singleGlyphVaoData = createSingleGlyphVaoData(word, anchors, normals)
+  const singleGlyphVaoData = createGlyphsVaoData(text, anchors, normals)
   const singleGlyphVaoInfo = createSdfTextureVaoInfo(gl, sdfTextureProgramInfo, singleGlyphVaoData)
 
   const polylineVaoData = createPolylineVaoData(CURVE)
@@ -67,7 +58,6 @@ export const createContext = (gl) => {
     polylineProgramInfo,
     polygonVaoInfo,
     textureVaoInfo,
-    textVaoInfo,
     singleGlyphVaoInfo,
     polylineVaoInfo,
     fontAtlasTexture,

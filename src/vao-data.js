@@ -14,8 +14,8 @@ export const createTextVaoData = (text, size) => {
   let vertexElements = []
   let textureElements = []
 
-  let pen = { x: 0, y: 0 }
-  arrChr.map((chr) => drawGlyph(chr, pen, size, vertexElements, textureElements))
+  // let pen = { x: 0, y: 0 }
+  // arrChr.map((chr) => drawGlyph(chr, pen, size, vertexElements, textureElements))
 
   return { textureElements, vertexElements }
 }
@@ -31,7 +31,7 @@ export const createComplexPolygonVaoData = (data) => {
   return { textureElements, vertexElements }
 }
 
-export const createSingleGlyphVaoData = (word, anchors, normals) => {
+export const createGlyphsVaoData = (word, anchors, normals) => {
   let vertexElements = []
   let textureElements = []
 
@@ -42,6 +42,7 @@ export const createSingleGlyphVaoData = (word, anchors, normals) => {
   chars.map((char, index) => {
     const anchor = anchors[index]
     const normal = normals[index]
+    if (!anchor || !normal) return
     const angle = Math.atan2(normal[1], normal[0])
     textureElements.push(...createGlyphTextureElements(char))
     vertexElements.push(...translateFlat2d(rotateFlat2d(createGlyphVertexElements(char), angle), anchor))
